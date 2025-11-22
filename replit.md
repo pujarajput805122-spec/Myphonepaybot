@@ -6,7 +6,11 @@ A Telegram bot that verifies users' membership in two specified channels before 
 ## Features
 - `/start` command with inline keyboard showing channel join links
 - Automatic verification of channel membership
-- APK file delivery after successful verification
+- APK file delivery after successful verification with password caption
+- Forward protection to prevent APK file sharing
+- Anti-spam cooldown mechanism (3 second cooldown on verify button)
+- File caching for faster APK delivery (speeds up subsequent sends)
+- Concurrent updates for better performance
 - Error handling for missing channels or files
 
 ## Project Structure
@@ -31,4 +35,7 @@ Required environment variables:
 5. Run the bot
 
 ## Recent Changes
+- 2025-11-22: Added performance optimizations (file caching, concurrent updates)
+- 2025-11-22: Added forward protection and password caption to APK delivery
+- 2025-11-22: Added anti-spam cooldown on verify button
 - 2025-11-22: Initial project setup with environment variable configuration

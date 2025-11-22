@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
@@ -15,6 +16,9 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+COOLDOWN = {}
+FILE_ID_CACHE = None
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
@@ -32,6 +36,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
+    
+    if user_id in COOLDOWN and COOLDOWN[user_id] > time.time():
+        await query.answer("⏳ Slow down! Try again in 3 seconds.", show_alert=True)
+        return
+    COOLDOWN[user_id] = time.time() + 3
     
     try:
         status1 = await context.bot.get_chat_member(CHANNEL_1, user_id)
@@ -56,17 +65,31 @@ async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("❌ Please join both channels first!", show_alert=True)
 
 async def send_apk(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global FILE_ID_CACHE
     query = update.callback_query
     
     try:
+        await query.answer("📦 Preparing APK...")
+        
+        if FILE_ID_CACHE:
+            await context.bot.send_document(
+                chat_id=query.message.chat_id,
+                document=FILE_ID_CACHE,
+                caption="🔐 Password - tritalks",
+                protect_content=True
+            )
+            logger.info(f"APK sent to user {query.from_user.id} (cached)")
+            return
+        
         with open(APK_PATH, "rb") as apk_file:
-            await query.message.reply_document(
+            msg = await context.bot.send_document(
+                chat_id=query.message.chat_id,
                 document=apk_file,
                 caption="🔐 Password - tritalks",
                 protect_content=True
             )
-        await query.answer()
-        logger.info(f"APK sent to user {query.from_user.id}")
+            FILE_ID_CACHE = msg.document.file_id
+            logger.info(f"APK sent to user {query.from_user.id} (first time, cached for reuse)")
     except FileNotFoundError:
         logger.error(f"APK file not found: {APK_PATH}")
         await query.answer("❌ APK not found!", show_alert=True)
@@ -92,13 +115,13 @@ def main():
         return
 
     logger.info("Starting bot...")
-    app = Application.builder().token(BOT_TOKEN).build()
+    app = Application.builder().token(BOT_TOKEN).concurrent_updates(True).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(verify, pattern="verify"))
     app.add_handler(CallbackQueryHandler(send_apk, pattern="get_apk"))
 
-    logger.info("Bot is running. Press Ctrl+C to stop.")
+    logger.info("🤖 Bot is running. Press Ctrl+C to stop.")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
