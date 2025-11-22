@@ -62,7 +62,8 @@ async def send_apk(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with open(APK_PATH, "rb") as apk_file:
             await query.message.reply_document(
                 document=apk_file,
-                caption="🔐 Password - tritalks"
+                caption="🔐 Password - tritalks",
+                protect_content=True
             )
         await query.answer()
         logger.info(f"APK sent to user {query.from_user.id}")
