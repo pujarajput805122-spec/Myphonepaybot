@@ -1,0 +1,74 @@
+import logging
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+
+# Your bot token
+BOT_TOKEN = "8193657550:AAEsQloDjN1xd-i8DrkZqQHiDV9_Zso16EE"
+
+# Channel chat IDs
+CHANNEL_1 = -1002347417128
+CHANNEL_2 = -1002714529340
+
+# APK file path (upload apk in same folder)
+APK_PATH = "PhonePe_1.0.apk"
+
+logging.basicConfig(level=logging.INFO)
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [
+            InlineKeyboardButton("Join Channel 1", url="https://t.me/shelbyykachannelhaibsdk"),
+            InlineKeyboardButton("Join Channel 2", url="https://t.me/papabolopapabeta")
+        ],
+        [InlineKeyboardButton("Verify", callback_data="verify")]
+    ]
+    await update.message.reply_text(
+        "🚀 Please join both channels to continue:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = query.from_user.id
+    
+    try:
+        status1 = await context.bot.get_chat_member(CHANNEL_1, user_id)
+        status2 = await context.bot.get_chat_member(CHANNEL_2, user_id)
+    except:
+        await query.answer("❌ Channels not found!", show_alert=True)
+        return
+
+    if status1.status in ["member", "administrator", "creator"] and \
+       status2.status in ["member", "administrator", "creator"]:
+
+        keyboard = [
+            [InlineKeyboardButton("Get APK 🎁", callback_data="get_apk")]
+        ]
+
+        await query.message.edit_text(
+            "✅ Verified! You can now download the APK:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    else:
+        await query.answer("❌ Please join both channels first!", show_alert=True)
+
+async def send_apk(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    
+    try:
+        await query.message.reply_document(document=open(APK_PATH, "rb"))
+        await query.answer()
+    except:
+        await query.answer("❌ APK not found!", show_alert=True)
+
+def main():
+    app = Application.builder().token(BOT_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(verify, pattern="verify"))
+    app.add_handler(CallbackQueryHandler(send_apk, pattern="get_apk"))
+
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
