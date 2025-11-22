@@ -3,6 +3,7 @@ import os
 import time
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.request import HTTPXRequest
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_1 = int(os.getenv("CHANNEL_1", "0"))
@@ -115,7 +116,13 @@ def main():
         return
 
     logger.info("Starting bot...")
-    app = Application.builder().token(BOT_TOKEN).concurrent_updates(True).build()
+    request = HTTPXRequest(
+        connection_pool_size=8,
+        read_timeout=60.0,
+        write_timeout=60.0,
+        connect_timeout=10.0
+    )
+    app = Application.builder().token(BOT_TOKEN).request(request).concurrent_updates(True).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(verify, pattern="verify"))
