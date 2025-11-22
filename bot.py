@@ -60,7 +60,10 @@ async def send_apk(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         with open(APK_PATH, "rb") as apk_file:
-            await query.message.reply_document(document=apk_file)
+            await query.message.reply_document(
+                document=apk_file,
+                caption="🔐 Password - tritalks"
+            )
         await query.answer()
         logger.info(f"APK sent to user {query.from_user.id}")
     except FileNotFoundError:
