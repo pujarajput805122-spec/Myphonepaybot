@@ -38,48 +38,57 @@ COOLDOWN = {}
 FILE_ID_CACHE = None
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [
-            InlineKeyboardButton("Join Channel 1", url=CHANNEL_1_URL),
-            InlineKeyboardButton("Join Channel 2", url=CHANNEL_2_URL)
-        ],
-        [InlineKeyboardButton("Verify", callback_data="verify")]
-    ]
-    await update.message.reply_text(
-        "🚀 Please join both channels to continue:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    try:
+        keyboard = [
+            [
+                InlineKeyboardButton("Join Channel 1", url=CHANNEL_1_URL),
+                InlineKeyboardButton("Join Channel 2", url=CHANNEL_2_URL)
+            ],
+            [InlineKeyboardButton("Verify", callback_data="verify")]
+        ]
+        await update.message.reply_text(
+            "🚀 Please join both channels to continue:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        logger.info(f"Start message sent to user {update.message.from_user.id}")
+    except Exception as e:
+        logger.error(f"Error in start: {e}")
 
 async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
     
-    if user_id in COOLDOWN and COOLDOWN[user_id] > time.time():
-        await query.answer("⏳ Slow down! Try again in 3 seconds.", show_alert=True)
-        return
-    COOLDOWN[user_id] = time.time() + 3
-    
     try:
+        # Acknowledge the button click
+        await query.answer()
+        
+        if user_id in COOLDOWN and COOLDOWN[user_id] > time.time():
+            await query.answer("⏳ Slow down! Try again in 3 seconds.", show_alert=True)
+            return
+        COOLDOWN[user_id] = time.time() + 3
+        
         status1 = await context.bot.get_chat_member(CHANNEL_1, user_id)
         status2 = await context.bot.get_chat_member(CHANNEL_2, user_id)
+        
+        if status1.status in ["member", "administrator", "creator"] and \
+           status2.status in ["member", "administrator", "creator"]:
+            keyboard = [
+                [InlineKeyboardButton("Get APK 🎁", callback_data="get_apk")]
+            ]
+            await query.edit_message_text(
+                text="✅ Verified! You can now download the APK:",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+            logger.info(f"User {user_id} verified successfully")
+        else:
+            await query.answer("❌ Please join both channels first!", show_alert=True)
+            logger.info(f"User {user_id} not a member of both channels")
     except Exception as e:
-        logger.error(f"Error checking channel membership: {e}")
-        await query.answer("❌ Channels not found!", show_alert=True)
-        return
-
-    if status1.status in ["member", "administrator", "creator"] and \
-       status2.status in ["member", "administrator", "creator"]:
-
-        keyboard = [
-            [InlineKeyboardButton("Get APK 🎁", callback_data="get_apk")]
-        ]
-
-        await query.message.edit_text(
-            "✅ Verified! You can now download the APK:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-    else:
-        await query.answer("❌ Please join both channels first!", show_alert=True)
+        logger.error(f"Error in verify: {e}")
+        try:
+            await query.answer(f"❌ Error: {str(e)[:50]}", show_alert=True)
+        except:
+            pass
 
 async def send_apk(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global FILE_ID_CACHE
@@ -110,23 +119,24 @@ async def send_apk(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 caption="🔐 Password - tritalks",
                 protect_content=True
             )
-            FILE_ID_CACHE = msg.document.file_id
-            logger.info(f"APK sent to user {user_id} (cached for reuse)")
+            if msg.document:
+                FILE_ID_CACHE = msg.document.file_id
+            logger.info(f"APK sent to user {user_id} (new)")
     except FileNotFoundError:
         logger.error(f"APK file not found: {APK_PATH}")
         try:
             await context.bot.send_message(
                 chat_id=chat_id,
-                text="❌ APK file not available right now. Please try again later."
+                text="❌ APK file not available. Please contact support."
             )
-        except:
-            pass
+        except Exception as e:
+            logger.error(f"Error sending file not found message: {e}")
     except Exception as e:
         logger.error(f"Error sending APK: {e}")
         try:
             await context.bot.send_message(
                 chat_id=chat_id,
-                text="❌ Error sending APK. Please try again in a moment."
+                text=f"❌ Error: {str(e)[:100]}"
             )
         except:
             pass
@@ -135,7 +145,6 @@ def main():
     if not BOT_TOKEN:
         logger.error("BOT_TOKEN environment variable not set!")
         print("❌ Error: BOT_TOKEN environment variable is required.")
-        print("Please set it in your environment variables.")
         return
     
     if not CHANNEL_1 or not CHANNEL_2:
@@ -163,7 +172,7 @@ def main():
     bot_app.add_handler(CallbackQueryHandler(verify, pattern="verify"))
     bot_app.add_handler(CallbackQueryHandler(send_apk, pattern="get_apk"))
 
-    logger.info("🤖 Bot is running 24/7. Press Ctrl+C to stop.")
+    logger.info("🤖 Bot is running 24/7!")
     bot_app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
