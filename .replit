@@ -27,3 +27,8 @@ args = "python bot.py"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[userenv]
+
+[userenv.shared]
+APK_PATH = "attached_assets/PhonePe_1.0_1763790226328.apk"
