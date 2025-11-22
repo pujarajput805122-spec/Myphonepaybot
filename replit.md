@@ -35,7 +35,21 @@ Required environment variables:
 5. Run the bot
 
 ## Recent Changes
+- 2025-11-22: Added Flask keep-alive server for 24/7 continuous operation on Replit
+- 2025-11-22: Fixed callback timeout issues for reliable APK delivery
 - 2025-11-22: Added performance optimizations (file caching, concurrent updates)
 - 2025-11-22: Added forward protection and password caption to APK delivery
 - 2025-11-22: Added anti-spam cooldown on verify button
 - 2025-11-22: Initial project setup with environment variable configuration
+
+## How It Works 24/7
+The bot runs with:
+1. **Telegram Bot Polling** - Continuously listens for user messages and button clicks
+2. **Flask Keep-Alive Server** - Runs on port 8080 to prevent Replit from stopping the instance
+3. **VM Deployment** - Configured to run continuously without interruption
+
+## Status
+✅ **Bot is live and running 24/7**
+- Telegram Bot: @Phonepay2026_bot
+- Keep-Alive Server: http://localhost:8080
+- All features enabled and tested

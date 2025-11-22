@@ -40,3 +40,7 @@ CHANNEL_2_URL = "https://t.me/papabolopapabeta"
 [deployment]
 deploymentTarget = "vm"
 run = ["python"]
+
+[[ports]]
+localPort = 8080
+externalPort = 80

@@ -1,9 +1,25 @@
 import logging
 import os
 import time
+from threading import Thread
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from telegram.request import HTTPXRequest
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is alive!"
+
+def run():
+    app.run(host="0.0.0.0", port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.daemon = True
+    t.start()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_1 = int(os.getenv("CHANNEL_1", "0"))
@@ -133,20 +149,22 @@ def main():
         return
 
     logger.info("Starting bot...")
+    keep_alive()
+    
     request = HTTPXRequest(
         connection_pool_size=8,
         read_timeout=60.0,
         write_timeout=60.0,
         connect_timeout=10.0
     )
-    app = Application.builder().token(BOT_TOKEN).request(request).concurrent_updates(True).build()
+    bot_app = Application.builder().token(BOT_TOKEN).request(request).concurrent_updates(True).build()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(verify, pattern="verify"))
-    app.add_handler(CallbackQueryHandler(send_apk, pattern="get_apk"))
+    bot_app.add_handler(CommandHandler("start", start))
+    bot_app.add_handler(CallbackQueryHandler(verify, pattern="verify"))
+    bot_app.add_handler(CallbackQueryHandler(send_apk, pattern="get_apk"))
 
     logger.info("🤖 Bot is running 24/7. Press Ctrl+C to stop.")
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    bot_app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
     main()
