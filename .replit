@@ -36,3 +36,7 @@ CHANNEL_1 = "-1002347417128"
 CHANNEL_2 = "-1002714529340"
 CHANNEL_1_URL = "https://t.me/shelbyykachannelhaibsdk"
 CHANNEL_2_URL = "https://t.me/papabolopapabeta"
+
+[deployment]
+deploymentTarget = "vm"
+run = ["python"]

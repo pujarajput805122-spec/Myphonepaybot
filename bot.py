@@ -68,35 +68,52 @@ async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_apk(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global FILE_ID_CACHE
     query = update.callback_query
+    user_id = query.from_user.id
+    chat_id = query.message.chat_id
     
     try:
-        await query.answer("📦 Preparing APK...")
+        await query.answer()
         
         if FILE_ID_CACHE:
-            await context.bot.send_document(
-                chat_id=query.message.chat_id,
-                document=FILE_ID_CACHE,
-                caption="🔐 Password - tritalks",
-                protect_content=True
-            )
-            logger.info(f"APK sent to user {query.from_user.id} (cached)")
-            return
+            try:
+                await context.bot.send_document(
+                    chat_id=chat_id,
+                    document=FILE_ID_CACHE,
+                    caption="🔐 Password - tritalks",
+                    protect_content=True
+                )
+                logger.info(f"APK sent to user {user_id} (cached)")
+                return
+            except Exception as e:
+                logger.error(f"Error sending cached APK: {e}")
         
         with open(APK_PATH, "rb") as apk_file:
             msg = await context.bot.send_document(
-                chat_id=query.message.chat_id,
+                chat_id=chat_id,
                 document=apk_file,
                 caption="🔐 Password - tritalks",
                 protect_content=True
             )
             FILE_ID_CACHE = msg.document.file_id
-            logger.info(f"APK sent to user {query.from_user.id} (first time, cached for reuse)")
+            logger.info(f"APK sent to user {user_id} (cached for reuse)")
     except FileNotFoundError:
         logger.error(f"APK file not found: {APK_PATH}")
-        await query.answer("❌ APK not found!", show_alert=True)
+        try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="❌ APK file not available right now. Please try again later."
+            )
+        except:
+            pass
     except Exception as e:
         logger.error(f"Error sending APK: {e}")
-        await query.answer("❌ Error sending APK!", show_alert=True)
+        try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="❌ Error sending APK. Please try again in a moment."
+            )
+        except:
+            pass
 
 def main():
     if not BOT_TOKEN:
@@ -128,7 +145,7 @@ def main():
     app.add_handler(CallbackQueryHandler(verify, pattern="verify"))
     app.add_handler(CallbackQueryHandler(send_apk, pattern="get_apk"))
 
-    logger.info("🤖 Bot is running. Press Ctrl+C to stop.")
+    logger.info("🤖 Bot is running 24/7. Press Ctrl+C to stop.")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
